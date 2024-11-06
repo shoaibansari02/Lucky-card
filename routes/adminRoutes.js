@@ -12,6 +12,7 @@ import {
   updatePassword,
   postAllAdminWinnings,
   getAdminWinnings,
+  getAdminGameTotalInfo,
 } from "../controllers/adminController.js";
 import { authAdmin, authSuperAdmin } from "../middleware/auth.js";
 import {
@@ -48,5 +49,7 @@ router.get("/total-winnings/:adminId", authAdmin, getTotalWinnings);
 
 // Claim all winnings for an admin
 router.post("/claim-all/:adminId", authAdmin, claimAllWinnings);
+
+router.get("/game-total-info/:adminId", getAdminGameTotalInfo);
 
 export default router;

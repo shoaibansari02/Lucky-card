@@ -1,3 +1,4 @@
+//cardController.js
 import SelectedCard from "../models/selectedCardModel.js";
 import Timer from "../models/timerModel.js";
 import Game from "../models/gameModel.js";
@@ -715,27 +716,27 @@ function selectRandomAmount(validAmounts, percAmount, type) {
     return { randomEntry: selectedEntry };
   } else {
     const entries = [
-      { key: '5', index: 8, value: 0 },
-      { key: '4', index: 7, value: 0 },
-      { key: '3', index: 6, value: 0 },
-      { key: '2', index: 8, value: 0 },
-      { key: '1', index: 9, value: 0 },
-      { key: '5', index: 1, value: 0 },
-      { key: '4', index: 8, value: 0 },
-      { key: '3', index: 4, value: 0 },
-      { key: '5', index: 2, value: 0 },
-      { key: '8', index: 5, value: 0 },
-      { key: '5', index: 3, value: 0 },
-      { key: '6', index: 1, value: 0 },
-      { key: '7', index: 3, value: 0 },
-      { key: '4', index: 2, value: 0 },
+      { key: "5", index: 8, value: 0 },
+      { key: "4", index: 7, value: 0 },
+      { key: "3", index: 6, value: 0 },
+      { key: "2", index: 8, value: 0 },
+      { key: "1", index: 9, value: 0 },
+      { key: "5", index: 1, value: 0 },
+      { key: "4", index: 8, value: 0 },
+      { key: "3", index: 4, value: 0 },
+      { key: "5", index: 2, value: 0 },
+      { key: "8", index: 5, value: 0 },
+      { key: "5", index: 3, value: 0 },
+      { key: "6", index: 1, value: 0 },
+      { key: "7", index: 3, value: 0 },
+      { key: "4", index: 2, value: 0 },
       // Add more entries as needed
     ];
-  
+
     // Generate a random index
     const randomIndex = Math.floor(Math.random() * entries.length);
-    let randomEntry =   entries[randomIndex];
-    
+    let randomEntry = entries[randomIndex];
+
     return { randomEntry };
   }
 }
