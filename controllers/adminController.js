@@ -564,6 +564,7 @@ async function getAdminGameData(adminId, from, to) {
 
 async function calculateAdminGameTotals(
   games,
+  selectedCards,
   admin,
   adminGameResults
 ) {
