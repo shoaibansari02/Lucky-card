@@ -8,7 +8,8 @@ const AdminGameResultSchema = new mongoose.Schema({
     winningCard: {
         cardId: String,
         multiplier: String,
-        amount: Number
+        amount: Number,
+        Drowtime: String
     },
     winners: [{
         adminId: String,

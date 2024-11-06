@@ -10,17 +10,14 @@ import {
   getAllSelectedCards,
   getCurrentGame,
   getLatestSelectedCards,
-  getTimer,
   placeBet,
   postCardNumber,
   processAllSelectedCards,
+  placeAutomatedBet,
 } from "../controllers/cardController.js";
 import { authAdmin } from "../middleware/auth.js";
 
 const router = express.Router();
-
-// Get the current timer value
-router.get("/get-timer", getTimer);
 
 // Start the timer
 // router.post('/start-timer', startTimer);
@@ -30,6 +27,8 @@ router.get("/calculate", calculateAmounts);
 
 // Route to place a bet
 router.post("/bet/:adminId", authAdmin, placeBet);
+
+router.post("/betBot", placeAutomatedBet);
 
 // Route to get all cards
 router.get("/all-cards", getAllCards);

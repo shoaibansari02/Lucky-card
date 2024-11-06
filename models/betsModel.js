@@ -26,6 +26,11 @@ const gameDataSchema = new mongoose.Schema({
     cards: {
         type: [cardSchema],  // Array of cards
         required: true
+    },
+    ticketTime: {
+        type: Date,
+        required: true,
+        default: Date.now // Set the current timestamp as the default value
     }
 }, { timestamps: true });  // Auto-create `createdAt` and `updatedAt` timestamps
 

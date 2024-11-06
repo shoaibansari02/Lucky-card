@@ -1,6 +1,4 @@
-//cardController.js
 import SelectedCard from "../models/selectedCardModel.js";
-import Timer from "../models/timerModel.js";
 import Game from "../models/gameModel.js";
 import Admin from "../models/Admin.js";
 import AdminGameResult from "../models/AdminGameResult.js";
@@ -8,6 +6,7 @@ import { calculateAndStoreAdminWinnings } from "./adminController.js";
 import AdminChoice from "../models/AdminChoice.js";
 import BetPercentage from "../models/BetPercentage.js";
 import RecentWinningCard from "../models/recentWinningCard.js";
+import { v4 as uuidv4 } from 'uuid';
 
 export const searchTickets = async (searchTerm) => {
   try {
@@ -188,7 +187,7 @@ export const calculateAmounts = async () => {
     }
 
     let { multipliedArray, percAmount, type } = processedData;
-    const selectedCard = selectRandomAmount(multipliedArray, percAmount, type);
+    const selectedCard = await selectRandomAmount(multipliedArray, percAmount, type);
 
     if (!selectedCard || !selectedCard.randomEntry) {
       throw new Error("No valid card selected");
@@ -224,9 +223,16 @@ export const calculateAmounts = async () => {
     };
 
     await saveSelectedCard(WinningCard, latestGame.GameId);
+    if(WinningCard.amount == 0){
+      return {
+        message: "Amounts calculated successfully",
+        WinningCard,
+      };
+    }
     const adminResults = await calculateAdminResults(latestGame, WinningCard);
     await getAdminGameResults(latestGame.GameId, adminResults);
-    await processAllSelectedCards();
+    // await processAllSelectedCards();   
+    await calculateAndStoreAdminWinnings(latestGame.GameId);
 
     console.log("adminResults", adminResults);
 
@@ -626,7 +632,7 @@ const processGameBetsWithZeroRandomAndMin = async (bets) => {
   };
 };
 
-function selectRandomAmount(validAmounts, percAmount, type) {
+async function selectRandomAmount(validAmounts, percAmount, type) {
   if (type === "processGameBets") {
     // Existing logic for processGameBets
 
@@ -716,28 +722,29 @@ function selectRandomAmount(validAmounts, percAmount, type) {
     return { randomEntry: selectedEntry };
   } else {
     const entries = [
-      { key: "5", index: 8, value: 0 },
-      { key: "4", index: 7, value: 0 },
-      { key: "3", index: 6, value: 0 },
-      { key: "2", index: 8, value: 0 },
-      { key: "1", index: 9, value: 0 },
-      { key: "5", index: 1, value: 0 },
-      { key: "4", index: 8, value: 0 },
-      { key: "3", index: 4, value: 0 },
-      { key: "5", index: 2, value: 0 },
-      { key: "8", index: 5, value: 0 },
-      { key: "5", index: 3, value: 0 },
-      { key: "6", index: 1, value: 0 },
-      { key: "7", index: 3, value: 0 },
-      { key: "4", index: 2, value: 0 },
-      // Add more entries as needed
+      { key: '5', index: 1, value: 0 },
+      { key: '4', index: 2, value: 0 },
+      { key: '3', index: 2, value: 0 },
+      { key: '2', index: 1, value: 0 },
+      { key: '1', index: 2, value: 0 },
+      { key: '5', index: 1, value: 0 },
+      { key: '4', index: 1, value: 0 },
+      { key: '3', index: 1, value: 0 },
+      { key: '5', index: 2, value: 0 },
+      { key: '8', index: 2, value: 0 },
+      { key: '5', index: 3, value: 0 },
+      { key: '6', index: 1, value: 0 },
+      { key: '7', index: 3, value: 0 },
+      { key: '4', index: 2, value: 0 },
+      // Add more entries as needed   
     ];
-
+  
     // Generate a random index
     const randomIndex = Math.floor(Math.random() * entries.length);
-    let randomEntry = entries[randomIndex];
-
+    let randomEntry =   entries[randomIndex];
+    
     return { randomEntry };
+    // return null;
   }
 }
 
@@ -749,6 +756,14 @@ const saveSelectedCard = async (selectedAmount, gameId) => {
     return {}; // Return an empty object if validAmounts is empty
   }
 
+  // const drowTime = {
+  //   drowTime: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+  // }
+  const drowTime = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })
+  // const drowTime = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+
+  // console.log(drowTime);
+  
   const selectedCardData = {
     gameId: gameId,
     cardId: selectedAmount.cardId,
@@ -756,6 +771,7 @@ const saveSelectedCard = async (selectedAmount, gameId) => {
     amount: selectedAmount.amount,
     adminID: selectedAmount.adminID,
     ticketsID: selectedAmount.ticketsID,
+    drowTime: drowTime
   };
 
   const selectedCard = new SelectedCard(selectedCardData);
@@ -860,6 +876,7 @@ export const placeBet = async (req, res) => {
       adminID: admin.adminId, // Use adminId from Admin model
       ticketsID: ticketsID,
       card: [], // Initialize an empty array for cards
+      ticketTime: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })  // Indian Standard Time (IST)
     };
 
     // Loop through the cards array and add each card to the newBet
@@ -894,6 +911,92 @@ export const placeBet = async (req, res) => {
     return res
       .status(500)
       .json({ message: "Failed to upload game data.", error: error.message });
+  }
+};
+
+export const placeAutomatedBet = async (req, res) => {
+  // const { GameId, ticketsID } = req.body;
+  const adminId = "a471e9c4-8fc5-4396-8a6e-268129c46503"; // Hardcoded admin ID
+
+  try {
+    // Fetch the admin details using admin ID
+    const admin = await Admin.findOne({ adminId: adminId });
+
+    if (!admin) {
+      return res.status(404).json({ message: "Admin not found!" });
+    }
+
+    // Check if there is an active game with the given GameId
+    // const activeGame = await Game.findOne({ GameId: GameId });
+     // Create a new game if none exists
+    let activeGame = await Game.findOne({}, {}, { sort: { createdAt: -1 } });
+    if (!activeGame) {
+      activeGame = await Game.create({});
+    }
+    // Generate a new ticket ID
+    const ticketsID = uuidv4();
+
+    // Create a new bet entry (gameDetails) to be pushed into the Bets array
+    const newBet = {
+      adminID: admin.adminId,
+      ticketsID: ticketsID,
+      card: [],
+      ticketTime: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })  // Indian Standard Time (IST)
+    };
+
+    // Loop through the card numbers and create a bet for each
+    const cardNumbers = {
+      A001: "Jheart",
+      A002: "Jspade",
+      A003: "Jdiamond",
+      A004: "Jclub",
+      A005: "Qheart",
+      A006: "Qspade",
+      A007: "Qdiamond",
+      A008: "Qclub",
+      A009: "Kheart",
+      A010: "Kspade",
+      A011: "Kdiamond",
+      A012: "Kclub",
+    };
+
+    const betAmount = 5;
+    let totalAmount = 0;
+
+    for (const [cardNo, cardName] of Object.entries(cardNumbers)) {
+      newBet.card.push({
+        cardNo,
+        Amount: betAmount,
+      });
+      totalAmount += betAmount;
+    }
+
+    // Check if admin has sufficient balance
+    if (admin.wallet < totalAmount) {
+      return res
+        .status(400)
+        .json({ message: "Insufficient balance in wallet!" });
+    }
+
+    // Add the new bet to the Bets array of the game
+    activeGame.Bets.push(newBet);
+
+    // Deduct the total bet amount from admin's wallet
+    admin.wallet -= totalAmount;
+
+    // Save the updated game and admin wallet
+    await Promise.all([activeGame.save(), admin.save()]);
+
+    return {
+      message: "Automated bet placed successfully!",
+      game: activeGame,
+      updatedWalletBalance: admin.wallet,
+    };
+  } catch (error) {
+    console.error("Error placing automated bet:", error);
+    return res
+      .status(500)
+      .json({ message: "Failed to place automated bet.", error: error.message });
   }
 };
 
@@ -957,6 +1060,8 @@ export const getAdminGameResults = async (gameId, adminResults) => {
     if (!selectedCard) {
       return { message: "Selected card not found for this game" };
     }
+    
+
     // Save results to MongoDB
     const newAdminGameResult = new AdminGameResult({
       gameId: game.GameId,
@@ -964,6 +1069,7 @@ export const getAdminGameResults = async (gameId, adminResults) => {
         cardId: selectedCard.cardId,
         multiplier: selectedCard.multiplier,
         amount: selectedCard.amount,
+        Drowtime: selectedCard.drowTime
       },
       winners: adminResults.winners,
       losers: adminResults.losers,
@@ -991,7 +1097,7 @@ export const getAdminGameResults = async (gameId, adminResults) => {
 export const getAdminGameResult = async (req, res) => {
   try {
     const result = await AdminGameResult.findOne();
-    console.log(result);
+    // console.log(result);
 
     return res.status(200).json({
       success: true,
@@ -1122,7 +1228,7 @@ export const claimWinnings = async (req, res) => {
   }
 };
 
-export const processAllSelectedCards = async (req, res) => {
+export const processAllSelectedCards = async (req, res) => {  
   try {
     // Fetch all unique gameIds from SelectedCard collection
     const uniqueGameIds = await SelectedCard.distinct("gameId");
@@ -1152,17 +1258,18 @@ export const processAllSelectedCards = async (req, res) => {
         );
 
         // Update game status
-        const currentGame = await Game.findOne({ GameId: gameId });
+        // const currentGame = await Game.findOne({ GameId: gameId });
         // Calculate and store admin winnings
         await calculateAndStoreAdminWinnings(gameId);
         // Store recent winning card and keep only latest 10
         const winningCard =
           processedCards[Math.floor(Math.random() * processedCards.length)];
-        await saveLatest10WinningCards(gameId, winningCard);
+        // await saveLatest10WinningCards(gameId, winningCard);
         // Fetch the saved winning card to return in the response
         const recentWinningCard = await RecentWinningCard.findOne({
           gameId,
         }).sort({ createdAt: -1 });
+        
         return {
           gameId,
           winningCard: recentWinningCard,
@@ -1179,42 +1286,6 @@ export const processAllSelectedCards = async (req, res) => {
     });
   }
 };
-
-// Function to save the latest winning card and keep only the latest 10
-async function saveLatest10WinningCards(gameId, winningCard) {
-  try {
-    // Create the new winning card document
-    const newWinningCard = new RecentWinningCard({
-      gameId: gameId,
-      cardId: winningCard.cardId,
-      amount: winningCard.amount,
-      multiplier: parseFloat(winningCard.multiplier),
-    });
-
-    // Save the new winning card document
-    await newWinningCard.save();
-
-    // Check the total count of documents
-    const totalCount = await RecentWinningCard.countDocuments();
-
-    // If there are more than 5 documents, delete the oldest ones
-    if (totalCount > 5) {
-      // Find the oldest documents (sorted by createdAt ascending)
-      const oldestDocuments = await RecentWinningCard.find()
-        .sort({ createdAt: 1 })
-        .limit(totalCount - 5);
-
-      // Extract the IDs of the oldest documents to delete
-      const idsToDelete = oldestDocuments.map((a) => a._id);
-
-      // Delete the oldest documents
-      await RecentWinningCard.deleteMany({ _id: { $in: idsToDelete } });
-    }
-  } catch (error) {
-    console.error("Error in saveLatest5WinningCards:", error);
-    throw error;
-  }
-}
 
 // Fetch all recent winning cards recent created limit 5
 export const getAllRecentWinningCards = async (req, res) => {
@@ -1271,9 +1342,9 @@ export const getAdminGameResultsForAdmin = async (req, res) => {
       };
     }
 
-    if (ticketsID) {
-      query["winningCard.ticketsID"] = ticketsID;
-    }
+    // if (ticketsID) {
+    //   query["winningCard.ticketsID"] = ticketsID;
+    // }
 
     const adminGameResults = await AdminGameResult.find(query).lean();
 
@@ -1282,20 +1353,68 @@ export const getAdminGameResultsForAdmin = async (req, res) => {
         success: false,
         message: "No game results found for this admin",
       });
-    }
+    } 
+    
+    const gameData = await Game.findOne()
+      .sort({ _id: -1})
 
+    const bets =  gameData.Bets
+    // console.log("bets", bets);
+    
+
+    // const ticketTimes = bets.map(bet => bet.tickerTime);
+    // console.log(ticketTimes); 
+    
     // Transform the data structure
+    // const transformedResults = adminGameResults.map((result) => {
+    //   // Combine winners and losers into a single adminresult array
+    //   const adminresult = [...(result.winners || []), ...(result.losers || [])];
+
+    //   // console.log("adminresult", adminresult);
+
+    //   const ticketTimes = adminresult.map(admin => {
+    //     // Find the matching bet based on ticketsID
+    //     const matchingBet = bets.find(bet => bet.ticketsID === admin.ticketsID);
+    //     // console.log("matchingBet", matchingBet.tickerTime);
+      
+    //     // Return the tickerTime from the matching bet (if it exists)
+    //     return matchingBet ? matchingBet.tickerTime : null;  // If no match, return null
+    //   });
+      
+    //   // console.log("ticketTimes", ticketTimes);
+
+    //   return {
+    //     _id: result._id,
+    //     gameId: result.gameId,
+    //     winningCard: result.winningCard,
+    //     adminresult: adminresult,
+    //     ticketTimes: ticketTimes
+    //   };
+    // });
+
     const transformedResults = adminGameResults.map((result) => {
       // Combine winners and losers into a single adminresult array
       const adminresult = [...(result.winners || []), ...(result.losers || [])];
-
+    
+      // Loop through adminresult and add the ticketTime directly within each admin entry
+      const updatedAdminResult = adminresult.map((admin) => {
+        // Find the matching bet based on ticketsID
+        const matchingBet = bets.find(bet => bet.ticketsID === admin.ticketsID);
+    
+        // Assign the tickerTime to the adminresult item
+        admin.ticketTime = matchingBet ? matchingBet.ticketTime : null;  // If no match, assign null
+    
+        return admin; // Return the updated admin object
+      });     
+    
       return {
         _id: result._id,
         gameId: result.gameId,
         winningCard: result.winningCard,
-        adminresult: adminresult,
+        adminresult: updatedAdminResult // Now each adminresult has the ticketTime added
       };
     });
+    
 
     return res.status(200).json({
       success: true,

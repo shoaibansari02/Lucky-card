@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+// import moment from 'moment-timezone';
 
 const SelectedCardSchema = new mongoose.Schema({
     gameId: { type: String },
@@ -7,6 +8,11 @@ const SelectedCardSchema = new mongoose.Schema({
     amount: { type: Number },
     adminID: { type: String }, // Change to String
     ticketsID: { type: String }, // Change to String
-}, { timestamps: true });
+    drowTime: {
+        type: String,
+        default: Date.now
+    }
+});
+
 
 export default mongoose.model('SelectedCard', SelectedCardSchema);

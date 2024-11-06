@@ -5,10 +5,6 @@ const AdminWinningsSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    // ticketsID: {
-    //     type: String,
-    //     required: true
-    // },
     gameId: {
         type: String,
         required: true,
